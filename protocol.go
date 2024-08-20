@@ -3,37 +3,56 @@ package swaybarprotocol
 import (
 	"encoding/json"
 	"io"
+	"os"
 )
 
-func Init(w io.Writer, h *Header) error {
-	err := write(w, h)
+// The swaybar protocol status
+type Status struct {
+	writer  io.Writer
+	encoder *json.Encoder
+	header  *Header
+}
+
+func New() *Status {
+	return &Status{
+		writer:  os.Stdout,
+		encoder: json.NewEncoder(os.Stdout),
+		header:  NewHeader(),
+	}
+}
+
+// Initializes the status protocol by printing a header.
+func (s *Status) Init() error {
+	err := s.encoder.Encode(s.header)
 	if err != nil {
 		return err
 	}
-	return writeStr(w, "[")
+	_, err = s.WriteString("[")
+	return err
 }
 
-func Output(w io.Writer, arr []*Body) error {
-	err := write(w, arr)
+func (s *Status) Output(items []Body) error {
+	err := s.encoder.Encode(items)
 	if err != nil {
 		return err
 	}
-	return writeStr(w, ",")
+	_, err = s.WriteString(",")
+	return err
 }
 
+/* TODO: implement in object-oriented fashion
 func Read(r io.Reader) (*ClickEvent, error) {
 	dec := json.NewDecoder(r)
 	event := &ClickEvent{}
 	err := dec.Decode(event)
 	return event, err
 }
+*/
 
-func write(w io.Writer, obj interface{}) error {
-	enc := json.NewEncoder(w)
-	return enc.Encode(obj)
+func (s *Status) Write(p []byte) (n int, err error) {
+	return s.writer.Write(p)
 }
 
-func writeStr(w io.Writer, s string) error {
-	_, err := w.Write([]byte(s))
-	return err
+func (stat *Status) WriteString(s string) (n int, err error) {
+	return stat.Write([]byte(s))
 }

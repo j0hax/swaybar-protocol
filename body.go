@@ -30,3 +30,9 @@ const (
 	MarkupPango = "pango"
 	MarkupNone  = "none"
 )
+
+func SimpleBlock(contents string) *Body {
+	return &Body{
+		FullText: contents,
+	}
+}
