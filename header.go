@@ -18,7 +18,7 @@ type Header struct {
 func NewHeader() *Header {
 	return &Header{
 		Version:     1,
-		ClickEvents: false,
+		ClickEvents: true,
 		ContSignal:  syscall.SIGCONT,
 		StopSignal:  syscall.SIGSTOP,
 	}

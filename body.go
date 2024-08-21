@@ -20,6 +20,7 @@ type Body struct {
 	BorderRight         int    `json:"border_right,omitempty"`
 	Urgent              bool   `json:"urgent,omitempty"`
 	Separator           bool   `json:"separator,omitempty"`
+	updateCallback      func(b *Body)
 }
 
 const (
@@ -31,8 +32,4 @@ const (
 	MarkupNone  = "none"
 )
 
-func SimpleBlock(contents string) *Body {
-	return &Body{
-		FullText: contents,
-	}
-}
+

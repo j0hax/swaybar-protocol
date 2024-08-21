@@ -2,55 +2,82 @@ package swaybarprotocol
 
 import (
 	"encoding/json"
-	"io"
+	"log"
 	"os"
+	"errors"
 )
 
 // The swaybar protocol status
 type Status struct {
-	writer  io.Writer
-	encoder *json.Encoder
-	header  *Header
+	out      *os.File
+	encoder  *json.Encoder
+	header   *Header
+	elements []Element
+	Events   chan ClickEvent
 }
 
 func New() *Status {
 	return &Status{
-		writer:  os.Stdout,
+		out:     os.Stdout,
 		encoder: json.NewEncoder(os.Stdout),
 		header:  NewHeader(),
+		Events: make(chan ClickEvent),
 	}
 }
 
 // Initializes the status protocol by printing a header.
-func (s *Status) Init() error {
+func (s *Status) Init() {
 	err := s.encoder.Encode(s.header)
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 	_, err = s.WriteString("[")
-	return err
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
-func (s *Status) Output(items []Body) error {
-	err := s.encoder.Encode(items)
+// Add a body element
+func (s *Status) Add(e *Element) {
+	s.elements = append(s.elements, *e)
+}
+
+// Update and output each registered block
+func (s *Status) Update() {
+	err := s.encoder.Encode(s.elements)
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = s.WriteString(",")
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+// Read click events
+func (s *Status) ReadEvents() error {
+	decoder := json.NewDecoder(os.Stdin)
+
+	// Consume opening '['
+	_, err := decoder.Token()
 	if err != nil {
 		return err
 	}
-	_, err = s.WriteString(",")
-	return err
-}
 
-/* TODO: implement in object-oriented fashion
-func Read(r io.Reader) (*ClickEvent, error) {
-	dec := json.NewDecoder(r)
-	event := &ClickEvent{}
-	err := dec.Decode(event)
-	return event, err
+	for decoder.More() {
+		var event ClickEvent
+		err = decoder.Decode(&event)
+		if err != nil {
+			return err
+		}
+		s.Events <- event
+	}
+
+	return errors.New("stdin exhausted")
 }
-*/
 
 func (s *Status) Write(p []byte) (n int, err error) {
-	return s.writer.Write(p)
+	return s.out.Write(p)
 }
 
 func (stat *Status) WriteString(s string) (n int, err error) {
